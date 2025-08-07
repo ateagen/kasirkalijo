@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Index Kasir</title>
+  <style>
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      background: linear-gradient(135deg, #e0f7fa, #80deea);
+      height: 100vh;
+      margin: 0;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+    }
+
+    h1 {
+      font-size: 2rem;
+      margin-bottom: 40px;
+      color: #006064;
+    }
+
+    .button-container {
+      display: flex;
+      gap: 30px;
+    }
+
+    button {
+      padding: 15px 40px;
+      font-size: 1.2rem;
+      border: none;
+      border-radius: 10px;
+      background-color: #0097a7;
+      color: white;
+      cursor: pointer;
+      transition: background 0.3s;
+    }
+
+    button:hover {
+      background-color: #007c91;
+    }
+
+    .popup {
+      position: fixed;
+      top: 0; left: 0;
+      width: 100%; height: 100%;
+      background-color: rgba(0, 0, 0, 0.4);
+      display: none;
+      justify-content: center;
+      align-items: center;
+      z-index: 1000;
+    }
+
+    .popup-content {
+      background-color: white;
+      padding: 30px;
+      border-radius: 12px;
+      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+      text-align: center;
+      width: 300px;
+    }
+
+    .popup-content h2 {
+      margin-bottom: 20px;
+      color: #006064;
+    }
+
+    .popup-content input {
+      width: 100%;
+      padding: 10px;
+      margin-bottom: 15px;
+      font-size: 1rem;
+      border: 1px solid #ccc;
+      border-radius: 6px;
+    }
+
+    .popup-content .error {
+      color: red;
+      font-size: 0.9rem;
+      margin-bottom: 10px;
+    }
+
+    .popup-buttons {
+      display: flex;
+      justify-content: space-between;
+    }
+
+    .popup-buttons button {
+      width: 48%;
+      font-size: 1rem;
+    }
+  </style>
+</head>
+<body>
+
+  <h1>Selamat Datang di Sistem Kasir</h1>
+  <div class="button-container">
+    <button onclick="masukKasir()">Kasir</button>
+    <button onclick="showPopup()">Admin</button>
+  </div>
+
+  <!-- Pop-up password -->
+  <div class="popup" id="popup">
+    <div class="popup-content">
+      <h2>Masukkan Password Admin</h2>
+      <input type="password" id="passwordInput" placeholder="Password Admin">
+      <div class="error" id="errorText"></div>
+      <div class="popup-buttons">
+        <button onclick="validateAdmin()">OK</button>
+        <button onclick="hidePopup()">Batal</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    function masukKasir() {
+      window.location.href = "kasir.html";
+    }
+
+    function showPopup() {
+      document.getElementById('popup').style.display = 'flex';
+      document.getElementById('passwordInput').value = '';
+      document.getElementById('errorText').textContent = '';
+      document.getElementById('passwordInput').focus();
+    }
+
+    function hidePopup() {
+      document.getElementById('popup').style.display = 'none';
+    }
+
+    function validateAdmin() {
+      const pw = document.getElementById('passwordInput').value.trim();
+      const errorText = document.getElementById('errorText');
+
+      if (pw === '1498') {
+        window.location.href = 'admin.html';
+      } else {
+        errorText.textContent = 'Password salah. Coba lagi.';
+      }
+    }
+
+    // Tutup popup jika klik di luar isi
+    window.addEventListener('click', function (e) {
+      const popup = document.getElementById('popup');
+      const content = document.querySelector('.popup-content');
+      if (e.target === popup) {
+        hidePopup();
+      }
+    });
+  </script>
+
+</body>
+</html>

@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Kasir Rumah Makan</title>
+  <style>
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      margin: 0;
+      padding: 0;
+      background: #f1f1f1;
+      display: flex;
+      flex-direction: row;
+    }
+    .menu-panel, .order-panel {
+      padding: 20px;
+      height: 100vh;
+      overflow-y: auto;
+    }
+    .menu-panel {
+      width: 70%;
+      background: white;
+    }
+    .order-panel {
+      width: 30%;
+      background: #fafafa;
+      border-left: 1px solid #ccc;
+    }
+    h2 {
+      margin-top: 0;
+    }
+    .menu-grid {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 15px;
+    }
+    .menu-item {
+      width: 120px;
+      text-align: center;
+      background: #eaeaea;
+      border-radius: 10px;
+      cursor: pointer;
+      padding: 10px;
+    }
+    .menu-item img {
+      width: 100px;
+      height: 100px;
+      object-fit: cover;
+      border-radius: 8px;
+    }
+    .order-list {
+      margin-top: 20px;
+    }
+    .order-list div {
+      margin-bottom: 10px;
+    }
+    .order-total {
+      font-weight: bold;
+      font-size: 18px;
+      margin-top: 20px;
+    }
+    .input-bayar, .input-kasir {
+      width: 100%;
+      padding: 8px;
+      margin-top: 10px;
+      margin-bottom: 10px;
+    }
+    .btn {
+      width: 100%;
+      padding: 10px;
+      background: #4CAF50;
+      color: white;
+      border: none;
+      font-size: 16px;
+      cursor: pointer;
+      border-radius: 6px;
+    }
+    .btn:hover {
+      background: #45a049;
+    }
+    .setting-btn {
+      margin-top: 10px;
+      background: #2196F3;
+    }
+    #settingModal {
+      position: fixed;
+      top: 0; left: 0;
+      width: 100%; height: 100%;
+      background: rgba(0,0,0,0.5);
+      display: none;
+      justify-content: center;
+      align-items: center;
+    }
+    #settingModal .modal-content {
+      background: white;
+      padding: 20px;
+      border-radius: 8px;
+      width: 300px;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="menu-panel">
+    <h2>Menu Makanan</h2>
+    <div class="menu-grid" id="menuGrid"></div>
+    <button class="btn setting-btn" onclick="openSetting()">Setting Menu</button>
+  </div>
+
+  <div class="order-panel">
+    <h2>Daftar Pesanan</h2>
+    <input type="text" id="kasir" class="input-kasir" placeholder="Nama Kasir">
+    <div class="order-list" id="orderList"></div>
+    <div class="order-total" id="orderTotal">Total: Rp0</div>
+    <input type="number" id="bayar" class="input-bayar" placeholder="Jumlah Bayar">
+    <div id="kembalian">Kembalian: Rp0</div>
+    <button class="btn" onclick="bayar()">Bayar & Cetak</button>
+  </div>
+
+  <!-- Modal Setting -->
+  <div id="settingModal">
+    <div class="modal-content">
+      <h3>Tambah/Ubah Menu</h3>
+      <input type="text" id="menuName" placeholder="Nama Menu" class="input-bayar"><br>
+      <input type="number" id="menuPrice" placeholder="Harga" class="input-bayar"><br>
+      <input type="file" id="menuImage" accept="image/*" class="input-bayar"><br>
+      <button class="btn" onclick="saveMenu()">Simpan Menu</button>
+      <button class="btn setting-btn" onclick="closeSetting()">Tutup</button>
+    </div>
+  </div>
+
+  <script>
+    let order = {};
+    let menuData = [];
+    const sheetURL = "https://script.google.com/macros/s/AKfycby7LSBODyQAPp1xJu3KQRnALOE01jbruzRLO8LWRGZ4xC472uhavM1_fYiN-mR2rjAe/exec";
+
+    function formatRupiah(n) {
+      return 'Rp' + n.toLocaleString('id-ID');
+    }
+
+    function renderMenu() {
+      const grid = document.getElementById('menuGrid');
+      grid.innerHTML = '';
+      menuData.forEach(item => {
+        const div = document.createElement('div');
+        div.className = 'menu-item';
+        div.innerHTML = `
+          <img src="${item.gambar}" />
+          <div>${item.nama}</div>
+          <div>${formatRupiah(Number(item.harga))}</div>`;
+        div.onclick = () => addToOrder(item.nama, Number(item.harga));
+        grid.appendChild(div);
+      });
+    }
+
+    function addToOrder(nama, harga) {
+      if (!order[nama]) order[nama] = { qty: 0, harga };
+      order[nama].qty++;
+      renderOrder();
+    }
+
+    function renderOrder() {
+      const list = document.getElementById('orderList');
+      const totalDiv = document.getElementById('orderTotal');
+      list.innerHTML = '';
+      let total = 0;
+      for (let nama in order) {
+        const item = order[nama];
+        const subtotal = item.qty * item.harga;
+        total += subtotal;
+        list.innerHTML += `<div>${nama} x ${item.qty} = ${formatRupiah(subtotal)}</div>`;
+      }
+      totalDiv.innerText = `Total: ${formatRupiah(total)}`;
+    }
+
+    function openSetting() {
+      document.getElementById('settingModal').style.display = 'flex';
+    }
+
+    function closeSetting() {
+      document.getElementById('settingModal').style.display = 'none';
+    }
+
+    async function saveMenu() {
+      const nama = document.getElementById('menuName').value;
+      const harga = document.getElementById('menuPrice').value;
+      const file = document.getElementById('menuImage').files[0];
+
+      if (!nama || !harga || !file) return alert("Lengkapi data menu!");
+
+      const reader = new FileReader();
+      reader.onloadend = async () => {
+        const gambar = reader.result;
+        const res = await fetch(sheetURL, {
+          method: 'POST',
+          body: JSON.stringify({ type: "menu", nama, harga, gambar }),
+        });
+        location.reload();
+      };
+      reader.readAsDataURL(file);
+    }
+
+    async function bayar() {
+      const namaKasir = document.getElementById('kasir').value;
+      const bayar = Number(document.getElementById('bayar').value);
+      let total = 0;
+      const items = [];
+
+      for (let nama in order) {
+        const item = order[nama];
+        const subtotal = item.qty * item.harga;
+        total += subtotal;
+        items.push(`${nama} x ${item.qty} = ${subtotal}`);
+      }
+
+      const kembalian = bayar - total;
+      document.getElementById('kembalian').innerText = `Kembalian: ${formatRupiah(kembalian)}`;
+
+      await fetch(sheetURL, {
+        method: 'POST',
+        body: JSON.stringify({
+          type: "penjualan",
+          kasir: namaKasir,
+          items: items.join(", "),
+          total,
+          bayar,
+          kembalian
+        }),
+      });
+
+      print();
+      location.reload();
+    }
+
+    async function loadMenu() {
+      const res = await fetch(sheetURL + "?type=readMenu");
+      const data = await res.json();
+      menuData = data;
+      renderMenu();
+    }
+
+    window.onload = loadMenu;
+  </script>
+</body>
+</html>
