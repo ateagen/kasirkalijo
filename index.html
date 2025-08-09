@@ -1,100 +1,67 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Form Menu</title>
+  <meta charset="UTF-8">
+  <title>Upload Foto ke Google Drive</title>
   <style>
-    body { font-family: Arial, sans-serif; margin: 20px; }
-    .menu-item { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
-    img { width: 80px; height: 80px; object-fit: cover; border-radius: 8px; }
-    button { padding: 5px 10px; }
+    body { font-family: Arial, sans-serif; text-align: center; }
+    #gallery img { max-width: 200px; margin: 10px; border-radius: 8px; }
   </style>
 </head>
 <body>
+  <h2>Upload Foto</h2>
+  <input type="file" id="fileInput" accept="image/*">
+  <button onclick="uploadFile()">Upload</button>
 
-<h2>Daftar Menu</h2>
-<div id="menuList"></div>
+  <h3>Galeri Foto</h3>
+  <div id="gallery"></div>
 
-<h2>Tambah/Ubah Menu</h2>
-<form id="menuForm">
-  <input type="hidden" id="menuId">
-  <input type="text" id="nama" placeholder="Nama menu" required>
-  <input type="number" id="harga" placeholder="Harga" required>
-  <input type="file" id="foto" accept="image/*">
-  <button type="submit">Simpan</button>
-</form>
+  <script>
+    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwYYeHmRjCnigvT4bzO28XJzetM0zBhvT1q9CGtjDPlbd41XyDODiHkbUQzE5nvd6SSwQ/exec"; // Ganti dengan URL Web App kamu
 
-<script>
-const SCRIPT_URL = "https://script.google.com/macros/s/AKfycby11vBG6vwkgFxjlbKdERvFGE9jAEy2k1CJIByN-fedGLtC71Pp6KzKBG0G9NIonzF2/exec"; // URL Web App Google Apps Script
+    function loadGallery() {
+      fetch(SCRIPT_URL)
+        .then(res => res.json())
+        .then(urls => {
+          document.getElementById('gallery').innerHTML = '';
+          urls.forEach(url => {
+            let img = document.createElement('img');
+            img.src = url;
+            document.getElementById('gallery').appendChild(img);
+          });
+        })
+        .catch(err => console.error('Error load gallery:', err));
+    }
 
-async function loadMenu() {
-  const res = await fetch(SCRIPT_URL);
-  const data = await res.json();
-  const menuDiv = document.getElementById("menuList");
-  menuDiv.innerHTML = "";
-  data.forEach(m => {
-    menuDiv.innerHTML += `
-      <div class="menu-item">
-        <img src="${m.foto}" alt="${m.nama}">
-        <b>${m.nama}</b> - Rp ${m.harga}
-        <button onclick="editMenu(${m.id}, '${m.nama}', ${m.harga}, '${m.foto}')">Edit</button>
-        <button onclick="deleteMenu(${m.id})">Hapus</button>
-      </div>
-    `;
-  });
-}
+    function uploadFile() {
+      const file = document.getElementById('fileInput').files[0];
+      if (!file) return alert("Pilih file dulu!");
 
-async function submitMenu(e) {
-  e.preventDefault();
-  const id = document.getElementById("menuId").value;
-  const nama = document.getElementById("nama").value;
-  const harga = document.getElementById("harga").value;
-  const fotoFile = document.getElementById("foto").files[0];
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        const base64 = e.target.result.split(',')[1];
+        fetch(SCRIPT_URL, {
+          method: 'POST',
+          body: new URLSearchParams({
+            file: base64,
+            name: file.name,
+            mimeType: file.type
+          })
+        })
+        .then(res => res.json())
+        .then(data => {
+          if (data.status === 'success') {
+            loadGallery();
+          } else {
+            alert("Upload gagal: " + data.message);
+          }
+        })
+        .catch(err => console.error('Error upload:', err));
+      };
+      reader.readAsDataURL(file);
+    }
 
-  let fotoBase64 = "";
-  if (fotoFile) {
-    fotoBase64 = await toBase64(fotoFile);
-  }
-
-  await fetch(SCRIPT_URL, {
-    method: "POST",
-    body: JSON.stringify({
-      action: id ? "update" : "add",
-      id, nama, harga,
-      foto: fotoBase64
-    })
-  });
-
-  document.getElementById("menuForm").reset();
-  loadMenu();
-}
-
-async function deleteMenu(id) {
-  await fetch(SCRIPT_URL, {
-    method: "POST",
-    body: JSON.stringify({ action: "delete", id })
-  });
-  loadMenu();
-}
-
-function editMenu(id, nama, harga, foto) {
-  document.getElementById("menuId").value = id;
-  document.getElementById("nama").value = nama;
-  document.getElementById("harga").value = harga;
-}
-
-function toBase64(file) {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.readAsDataURL(file);
-    reader.onload = () => resolve(reader.result);
-    reader.onerror = error => reject(error);
-  });
-}
-
-document.getElementById("menuForm").addEventListener("submit", submitMenu);
-
-loadMenu();
-</script>
-
+    window.onload = loadGallery;
+  </script>
 </body>
 </html>
