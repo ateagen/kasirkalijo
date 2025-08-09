@@ -1,68 +1,63 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <meta charset="UTF-8">
   <title>Upload Foto ke Google Drive</title>
-  <style>
-    body { font-family: Arial, sans-serif; text-align: center; }
-    #gallery img { max-width: 200px; margin: 10px; border-radius: 8px; }
-  </style>
 </head>
 <body>
   <h2>Upload Foto</h2>
   <input type="file" id="fileInput" accept="image/*">
   <button onclick="uploadFile()">Upload</button>
 
-  <h3>Galeri Foto</h3>
-  <div id="gallery"></div>
+  <h3>Foto Terupload:</h3>
+  <div id="photoContainer"></div>
 
   <script>
-    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwlGu4lDZV-zeUahcPmrpXHbuFiemTxVKinIziUQMAsypTspxyFZiTByCsqKCzVbhPFUg/exec"; // Ganti dengan URL Web App kamu
+    const webAppUrl = "https://script.google.com/macros/s/AKfycbwlGu4lDZV-zeUahcPmrpXHbuFiemTxVKinIziUQMAsypTspxyFZiTByCsqKCzVbhPFUg/exec";
 
-    function loadGallery() {
-      fetch(SCRIPT_URL)
-        .then(res => res.json())
-        .then(urls => {
-          document.getElementById('gallery').innerHTML = '';
-          urls.forEach(url => {
-            let img = document.createElement('img');
-            img.src = url;
-            document.getElementById('gallery').appendChild(img);
-          });
-        })
-        .catch(err => console.error('Error load gallery:', err));
-    }
+    // Tampilkan foto dari localStorage saat halaman dibuka
+    window.onload = function() {
+      const savedImage = localStorage.getItem("uploadedImage");
+      if (savedImage) {
+        showImage(savedImage);
+      }
+    };
 
     function uploadFile() {
-      const file = document.getElementById('fileInput').files[0];
-      if (!file) return alert("Pilih file dulu!");
+      const fileInput = document.getElementById("fileInput").files[0];
+      if (!fileInput) {
+        alert("Pilih file dulu!");
+        return;
+      }
 
       const reader = new FileReader();
       reader.onload = function(e) {
-        const base64 = e.target.result.split(',')[1];
-        fetch(SCRIPT_URL, {
-          method: 'POST',
+        const base64Data = e.target.result.split(",")[1];
+
+        fetch(webAppUrl, {
+          method: "POST",
           body: new URLSearchParams({
-            file: base64,
-            name: file.name,
-            mimeType: file.type
+            file: base64Data,
+            filename: fileInput.name,
+            mimeType: fileInput.type
           })
         })
         .then(res => res.json())
         .then(data => {
-          if (data.status === 'success') {
-            loadGallery();
+          if (data.imageUrl) {
+            localStorage.setItem("uploadedImage", data.imageUrl);
+            showImage(data.imageUrl);
           } else {
-            alert("Upload gagal: " + data.message);
+            alert("Upload gagal: " + data.error);
           }
         })
-        .catch(err => console.error('Error upload:', err));
+        .catch(err => alert("Error: " + err));
       };
-      reader.readAsDataURL(file);
+      reader.readAsDataURL(fileInput);
     }
 
-    window.onload = loadGallery;
+    function showImage(url) {
+      document.getElementById("photoContainer").innerHTML = `<img src="${url}" width="300">`;
+    }
   </script>
 </body>
 </html>
-
