@@ -1,64 +1,50 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Upload Foto ke Google Drive</title>
+  <meta charset="UTF-8">
+  <title>Upload Foto</title>
 </head>
 <body>
-  <h2>Upload Foto</h2>
-  <input type="file" id="fileInput" accept="image/*">
-  <button onclick="uploadFile()">Upload</button>
-
-  <h3>Foto Terupload:</h3>
-  <div id="photoContainer"></div>
+  <h2>Upload Foto ke Google Drive</h2>
+  <form id="uploadForm">
+    <input type="file" name="file" accept="image/*" required>
+    <button type="submit">Upload</button>
+  </form>
+  
+  <h3>Foto yang Sudah Diupload</h3>
+  <div id="gallery"></div>
 
   <script>
-    const webAppUrl = "https://script.google.com/macros/s/AKfycbwiq9kajtvKcwGfrlx7iszjQBBiXZGtcT303xx_g9jDyGSZJceI03M5LIP3V43KGbU1Uw/exec";
+    const webAppUrl = "https://script.google.com/macros/s/AKfycbyTnF10LRY0xXiqi4lR6BUb6E7heS6n0Q2dLcnJIWOUgTjQZHIXL9rMUzPDP0liAnyV8g/exec"; // URL Web App Google Script
 
-    // Tampilkan foto dari localStorage saat halaman dibuka
-    window.onload = function() {
-      const savedImage = localStorage.getItem("uploadedImage");
-      if (savedImage) {
-        showImage(savedImage);
-      }
-    };
-
-    function uploadFile() {
-      const fileInput = document.getElementById("fileInput").files[0];
-      if (!fileInput) {
-        alert("Pilih file dulu!");
-        return;
-      }
-
-      const reader = new FileReader();
-      reader.onload = function(e) {
-        const base64Data = e.target.result.split(",")[1];
-
-        fetch(webAppUrl, {
-          method: "POST",
-          body: new URLSearchParams({
-            file: base64Data,
-            filename: fileInput.name,
-            mimeType: fileInput.type
-          })
-        })
-        .then(res => res.json())
-        .then(data => {
-          if (data.imageUrl) {
-            localStorage.setItem("uploadedImage", data.imageUrl);
-            showImage(data.imageUrl);
+    // Upload Foto
+    document.getElementById("uploadForm").addEventListener("submit", function(e) {
+      e.preventDefault();
+      const formData = new FormData(this);
+      
+      fetch(webAppUrl, { method: "POST", body: formData })
+        .then(res => res.text())
+        .then(txt => {
+          if (txt === "OK") {
+            alert("Foto berhasil diupload!");
+            loadGallery();
           } else {
-            alert("Upload gagal: " + data.error);
+            alert("Upload gagal: " + txt);
           }
         })
         .catch(err => alert("Error: " + err));
-      };
-      reader.readAsDataURL(fileInput);
+    });
+
+    // Load Foto dari Sheet via Web App
+    function loadGallery() {
+      fetch(webAppUrl)
+        .then(res => res.text())
+        .then(html => {
+          document.getElementById("gallery").innerHTML = html;
+        });
     }
 
-    function showImage(url) {
-      document.getElementById("photoContainer").innerHTML = `<img src="${url}" width="300">`;
-    }
+    loadGallery();
   </script>
 </body>
 </html>
-
