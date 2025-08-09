@@ -1,155 +1,100 @@
 <!DOCTYPE html>
-<html lang="id">
+<html>
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Index Kasir</title>
+  <title>Form Menu</title>
   <style>
-    body {
-      font-family: 'Segoe UI', sans-serif;
-      background: linear-gradient(135deg, #e0f7fa, #80deea);
-      height: 100vh;
-      margin: 0;
-      display: flex;
-      flex-direction: column;
-      justify-content: center;
-      align-items: center;
-    }
-
-    h1 {
-      font-size: 2rem;
-      margin-bottom: 40px;
-      color: #006064;
-    }
-
-    .button-container {
-      display: flex;
-      gap: 30px;
-    }
-
-    button {
-      padding: 15px 40px;
-      font-size: 1.2rem;
-      border: none;
-      border-radius: 10px;
-      background-color: #0097a7;
-      color: white;
-      cursor: pointer;
-      transition: background 0.3s;
-    }
-
-    button:hover {
-      background-color: #007c91;
-    }
-
-    .popup {
-      position: fixed;
-      top: 0; left: 0;
-      width: 100%; height: 100%;
-      background-color: rgba(0, 0, 0, 0.4);
-      display: none;
-      justify-content: center;
-      align-items: center;
-      z-index: 1000;
-    }
-
-    .popup-content {
-      background-color: white;
-      padding: 30px;
-      border-radius: 12px;
-      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
-      text-align: center;
-      width: 300px;
-    }
-
-    .popup-content h2 {
-      margin-bottom: 20px;
-      color: #006064;
-    }
-
-    .popup-content input {
-      width: 100%;
-      padding: 10px;
-      margin-bottom: 15px;
-      font-size: 1rem;
-      border: 1px solid #ccc;
-      border-radius: 6px;
-    }
-
-    .popup-content .error {
-      color: red;
-      font-size: 0.9rem;
-      margin-bottom: 10px;
-    }
-
-    .popup-buttons {
-      display: flex;
-      justify-content: space-between;
-    }
-
-    .popup-buttons button {
-      width: 48%;
-      font-size: 1rem;
-    }
+    body { font-family: Arial, sans-serif; margin: 20px; }
+    .menu-item { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
+    img { width: 80px; height: 80px; object-fit: cover; border-radius: 8px; }
+    button { padding: 5px 10px; }
   </style>
 </head>
 <body>
 
-  <h1>Selamat Datang di Sistem Kasir</h1>
-  <div class="button-container">
-    <button onclick="masukKasir()">Kasir</button>
-    <button onclick="showPopup()">Admin</button>
-  </div>
+<h2>Daftar Menu</h2>
+<div id="menuList"></div>
 
-  <!-- Pop-up password -->
-  <div class="popup" id="popup">
-    <div class="popup-content">
-      <h2>Masukkan Password Admin</h2>
-      <input type="password" id="passwordInput" placeholder="Password Admin">
-      <div class="error" id="errorText"></div>
-      <div class="popup-buttons">
-        <button onclick="validateAdmin()">OK</button>
-        <button onclick="hidePopup()">Batal</button>
+<h2>Tambah/Ubah Menu</h2>
+<form id="menuForm">
+  <input type="hidden" id="menuId">
+  <input type="text" id="nama" placeholder="Nama menu" required>
+  <input type="number" id="harga" placeholder="Harga" required>
+  <input type="file" id="foto" accept="image/*">
+  <button type="submit">Simpan</button>
+</form>
+
+<script>
+const SCRIPT_URL = "https://script.google.com/macros/s/AKfycby11vBG6vwkgFxjlbKdERvFGE9jAEy2k1CJIByN-fedGLtC71Pp6KzKBG0G9NIonzF2/exec"; // URL Web App Google Apps Script
+
+async function loadMenu() {
+  const res = await fetch(SCRIPT_URL);
+  const data = await res.json();
+  const menuDiv = document.getElementById("menuList");
+  menuDiv.innerHTML = "";
+  data.forEach(m => {
+    menuDiv.innerHTML += `
+      <div class="menu-item">
+        <img src="${m.foto}" alt="${m.nama}">
+        <b>${m.nama}</b> - Rp ${m.harga}
+        <button onclick="editMenu(${m.id}, '${m.nama}', ${m.harga}, '${m.foto}')">Edit</button>
+        <button onclick="deleteMenu(${m.id})">Hapus</button>
       </div>
-    </div>
-  </div>
+    `;
+  });
+}
 
-  <script>
-    function masukKasir() {
-      window.location.href = "kasir.html";
-    }
+async function submitMenu(e) {
+  e.preventDefault();
+  const id = document.getElementById("menuId").value;
+  const nama = document.getElementById("nama").value;
+  const harga = document.getElementById("harga").value;
+  const fotoFile = document.getElementById("foto").files[0];
 
-    function showPopup() {
-      document.getElementById('popup').style.display = 'flex';
-      document.getElementById('passwordInput').value = '';
-      document.getElementById('errorText').textContent = '';
-      document.getElementById('passwordInput').focus();
-    }
+  let fotoBase64 = "";
+  if (fotoFile) {
+    fotoBase64 = await toBase64(fotoFile);
+  }
 
-    function hidePopup() {
-      document.getElementById('popup').style.display = 'none';
-    }
+  await fetch(SCRIPT_URL, {
+    method: "POST",
+    body: JSON.stringify({
+      action: id ? "update" : "add",
+      id, nama, harga,
+      foto: fotoBase64
+    })
+  });
 
-    function validateAdmin() {
-      const pw = document.getElementById('passwordInput').value.trim();
-      const errorText = document.getElementById('errorText');
+  document.getElementById("menuForm").reset();
+  loadMenu();
+}
 
-      if (pw === '1498') {
-        window.location.href = 'admin.html';
-      } else {
-        errorText.textContent = 'Password salah. Coba lagi.';
-      }
-    }
+async function deleteMenu(id) {
+  await fetch(SCRIPT_URL, {
+    method: "POST",
+    body: JSON.stringify({ action: "delete", id })
+  });
+  loadMenu();
+}
 
-    // Tutup popup jika klik di luar isi
-    window.addEventListener('click', function (e) {
-      const popup = document.getElementById('popup');
-      const content = document.querySelector('.popup-content');
-      if (e.target === popup) {
-        hidePopup();
-      }
-    });
-  </script>
+function editMenu(id, nama, harga, foto) {
+  document.getElementById("menuId").value = id;
+  document.getElementById("nama").value = nama;
+  document.getElementById("harga").value = harga;
+}
+
+function toBase64(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.readAsDataURL(file);
+    reader.onload = () => resolve(reader.result);
+    reader.onerror = error => reject(error);
+  });
+}
+
+document.getElementById("menuForm").addEventListener("submit", submitMenu);
+
+loadMenu();
+</script>
 
 </body>
 </html>
